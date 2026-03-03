@@ -134,6 +134,7 @@ function vtc:player:
     execute if score @s vtc_disable matches 1 run function vtc:disable
     execute if score @s vtc_scan matches 1 run function vtc:scan
     execute if score @s vtc_scan matches 3 run function vtc:disable_scan
+    scoreboard players operation #search tbs.ID = @s tbs.ID
     execute as @e[sort=nearest, type=villager, tag=vtc_selected, tag=vtc_scan, predicate=theblackswitch:v2.0/patch-1/player_id/match_search, limit=1, distance=..5] at @s if score @s vtc_hasjob matches 0 if data entity @s {VillagerData:{profession:"minecraft:librarian"}} run function vtc:got_job
     execute as @e[sort=nearest, type=villager, tag=vtc_selected, tag=vtc_scan, predicate=theblackswitch:v2.0/patch-1/player_id/match_search, limit=1, distance=..5] at @s if score @s vtc_hasjob matches 1 if data entity @s {VillagerData:{profession:"minecraft:none"}} run scoreboard players set @s vtc_hasjob 0
     execute if score @s vtc_reset matches 1 if entity @e[sort=nearest, type=villager, tag=vtc_selected, distance=..5, predicate=theblackswitch:v2.0/patch-1/player_id/match_search, limit=1] run function vtc:prompt_reset

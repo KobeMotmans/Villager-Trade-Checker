@@ -1,7 +1,7 @@
 {
     "data_pack": {
         "load": ["src/datapack", 
-        "libraries/SwitchLib-V2.0.1"],
+        "libraries/SwitchLib-V2.0.1.zip"],
         "name": "Villager Trade Checker 2"
     },
     "resource_pack": {
