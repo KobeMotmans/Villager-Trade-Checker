@@ -1,11 +1,4 @@
-# Minecraft Beet project template
+# Minecraft Villager Trade Checker
 
-A pre-configured GitHub template to quickly set up your [Beet](https://www.github.com/mcbeet/beet) project.
+This is a datapack that lets you check the trades a librarian villager has without looking at them, while also having the functionality to reset any locked villager
 
-I've edited it to my special needs / folder structure.
-
-Special thanks to AFancyDog and Foxeddev for the [Original Repository](https://github.com/foxeddev/beet-template).
-
-## License
-
-This project is licensed under [MIT License](LICENSE).
