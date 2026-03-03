@@ -1,0 +1,34 @@
+{
+  "type": "minecraft:multi_action",
+  "title": "riptide 3",
+  "inputs": [
+    {
+      "type": "minecraft:number_range",
+      "key": "riptide",
+      "label": "Max Cost",
+      "step": 1,
+      "start": 0,
+      "end": 64,
+      "initial": 0
+    }
+  ],
+  "can_close_with_escape": true,
+  "after_action": "none",
+  "pause": false,
+  "exit_action": {
+    "label": "Back",
+    "action": {
+      "type": "minecraft:show_dialog",
+      "dialog": "vtc:enchants"
+    }
+  },
+  "actions": [
+    {
+      "label": "Confirm",
+      "action": {
+        "type": "minecraft:dynamic/run_command",
+        "template": "trigger vtc_riptide set $(riptide)"
+      }
+    }
+  ]
+}

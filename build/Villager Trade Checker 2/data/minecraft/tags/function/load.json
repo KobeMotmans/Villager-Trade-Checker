@@ -1,0 +1,10 @@
+{
+  "values": [
+    {
+      "id": "#theblackswitch:load",
+      "required": false
+    },
+    "#theblackswitch:load",
+    "vtc:load"
+  ]
+}

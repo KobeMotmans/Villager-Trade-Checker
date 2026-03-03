@@ -1,0 +1,40 @@
+{
+    "data_pack": {
+        "load": ["src/datapack", 
+        "libraries/SwitchLib-V2.0.1"],
+        "name": "Villager Trade Checker 2"
+    },
+    "resource_pack": {
+        "load": ["src/resourcepack"],
+        "name": "Template Resourcepack"
+    },
+    "pipeline": [
+        "plugins.aliases",
+        "mecha"
+    ],
+    "id": "vtc",
+    "name": "Villager Trade Checker 2",
+    "description": "Yow",
+    "version": "1.0.0a",
+    "require": [
+        "bolt"
+    ],
+    "output": "build",
+    "meta": {
+        "bolt": {
+            "entrypoint": ["vtc:main"]
+        },
+        "aliases": [
+            {
+                "regex": "__version__",
+                "replace": "v2.0",
+                "comment": "The switch lib major version"
+            },
+            {
+                "regex": "__patch__",
+                "replace": "patch-1",
+                "comment": "The switch lib major version"
+            }
+        ]
+    }
+}

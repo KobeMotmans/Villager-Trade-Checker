@@ -1,0 +1,275 @@
+# <description of the curr file>
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+##        SETTINGS
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+# settings used to balance the minigame
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+##        INCLUDES
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+# Import all the things we need
+import json
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+##    PYTHON UTILITIES
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+# helper python functions used by any of the stages
+dialog_template = {
+  "type": "minecraft:multi_action",
+  "title": "Enchants",
+  "can_close_with_escape": true,
+  "pause": false,
+  "after_action": "none",
+  "columns": 3,
+  "exit_action": {
+    "label": "Exit",
+    "action": {
+      "type": "minecraft:run_command",
+      "command": "trigger vtc_menu set 3"
+    }
+  },
+  "actions": [
+  ]
+}
+
+
+enchantments = []
+with open("_all.json") as f:
+    data = json.load(f)
+    for enchantment in data.keys():
+        max_level = data[enchantment]["max_level"]
+        enchantments.append((enchantment, max_level))
+        
+        dialog f'vtc:{enchantment}' {
+        "type": "minecraft:multi_action",
+        "title": f'{enchantment} {max_level}',
+        "inputs": [
+            {
+            "type": "minecraft:number_range",
+            "key": enchantment,
+            "label": "Max Cost",
+            "step": 1,
+            "start": 0,
+            "end": 64,
+            "initial": 0
+            }
+        ],
+        "can_close_with_escape": true,
+        "after_action": "none",
+        "pause": false,
+        "exit_action": {
+            "label": "Back",
+            "action": {
+                "type": "minecraft:show_dialog",
+                "dialog": "vtc:enchants"
+            }
+        },
+        "actions": [
+            {
+            "label": "Confirm",
+            "action": {
+                "type": "minecraft:dynamic/run_command",
+                "template": f'trigger vtc_{enchantment} set $({enchantment})'
+            }
+            }
+        ]
+        }
+        action = {
+            "label": f'{enchantment} {max_level}',
+            "action": {
+                "type": "minecraft:show_dialog",
+                "dialog": f'vtc:{enchantment}'
+            }
+        }
+        dialog_template["actions"].append(action)
+
+dialog vtc:enchants dialog_template
+
+
+
+
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+##    GENERATION STAGE
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+# The generation stage generates all resourcepack files that can be generated using code
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+##      DATA STAGE
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+# generate all datapack files
+
+#---------------
+# FUNCTION TAGS 
+#---------------
+
+append function_tag minecraft:tick {
+    "values": [
+        "vtc:tick"
+    ]
+}
+
+append function_tag minecraft:load {
+    "values": [
+        "vtc:load"
+    ]
+}
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+##       RUN STAGE
+#-----------------------------------------------------------------------------------------------------------------------------------------------------
+# All functions that run during the game
+function vtc:player:
+    scoreboard players enable @s vtc_enable
+    scoreboard players enable @s vtc_scan
+    scoreboard players enable @s vtc_disable
+    scoreboard players enable @s vtc_reset
+    scoreboard players enable @s vtc_menu
+
+    execute if score @s vtc_enable matches 1 run function vtc:init_villager
+    execute if score @s vtc_disable matches 1 run function vtc:disable
+    execute if score @s vtc_scan matches 1 run function vtc:scan
+    execute if score @s vtc_scan matches 3 run function vtc:disable_scan
+    execute as @e[sort=nearest, type=villager, tag=vtc_selected, tag=vtc_scan, predicate=theblackswitch:v2.0/patch-1/player_id/match_search, limit=1, distance=..5] at @s if score @s vtc_hasjob matches 0 if data entity @s {VillagerData:{profession:"minecraft:librarian"}} run function vtc:got_job
+    execute as @e[sort=nearest, type=villager, tag=vtc_selected, tag=vtc_scan, predicate=theblackswitch:v2.0/patch-1/player_id/match_search, limit=1, distance=..5] at @s if score @s vtc_hasjob matches 1 if data entity @s {VillagerData:{profession:"minecraft:none"}} run scoreboard players set @s vtc_hasjob 0
+    execute if score @s vtc_reset matches 1 if entity @e[sort=nearest, type=villager, tag=vtc_selected, distance=..5, predicate=theblackswitch:v2.0/patch-1/player_id/match_search, limit=1] run function vtc:prompt_reset
+    execute if score @s vtc_reset matches 3 if entity @e[sort=nearest, type=villager, tag=vtc_selected, distance=..5, predicate=theblackswitch:v2.0/patch-1/player_id/match_search, limit=1] run function vtc:reset
+    execute if score @s vtc_reset matches 1 unless entity @e[sort=nearest, type=villager, tag=vtc_selected, distance=..5, predicate=theblackswitch:v2.0/patch-1/player_id/match_search, limit=1] run function vtc:stop_reset
+    execute if score @s vtc_is_resetting matches 1 if score @s vtc_reset matches 0 run function vtc:stop_reset
+
+    if score @s vtc_menu matches 1:
+        scoreboard players set @s vtc_menu 2
+        dialog show @s vtc:enchants
+    if score @s vtc_menu matches 2:
+        for e in enchantments:
+            scoreboard players enable @s f'vtc_{e[0]}'
+    if score @s vtc_menu matches 3:
+        dialog clear @s
+        for e in enchantments:
+            scoreboard players operation #ench f'vtc_{e[0]}' = @s f'vtc_{e[0]}'
+            scoreboard players reset @s f'vtc_{e[0]}'
+            unless score #ench f'vtc_{e[0]}' matches 0:
+                scoreboard players operation @s f'vtc_{e[0]}' = #ench f'vtc_{e[0]}'
+        scoreboard players set @s vtc_menu 0
+
+function vtc:init_villager:
+    scoreboard players set @s vtc_enable 0
+    tag @e[type=villager, sort=nearest, limit=1] add vtc_selected
+
+    scoreboard players operation #search tbs.ID = @s tbs.ID
+    execute as @e[sort=nearest, limit=1, type=villager, tag=vtc_selected, predicate=theblackswitch:v2.0/patch-1/player_id/match_search] run function vtc:remove_selected
+
+    scoreboard players operation @e[sort=nearest, limit=1, type=villager, tag=vtc_selected] tbs.ID = @s tbs.ID
+    scoreboard players add @e[sort=nearest, limit=1,type=villager, tag=vtc_selected, predicate=theblackswitch:v2.0/patch-1/player_id/match_search] vtc_hasjob 0
+    effect give @e[sort=nearest, limit=1, type=villager, tag=vtc_selected, predicate=theblackswitch:v2.0/patch-1/player_id/match_search] glowing infinite 1 true
+
+function vtc:disable:
+    scoreboard players set @s vtc_disable 0
+    scoreboard players operation #search tbs.ID = @s tbs.ID
+    execute as @e[sort=nearest, limit=1, type=villager, tag=vtc_selected, predicate=theblackswitch:v2.0/patch-1/player_id/match_search] run function vtc:remove_selected
+
+function vtc:scan:
+    scoreboard players set @s vtc_scan 2
+    scoreboard players operation #search tbs.ID = @s tbs.ID
+    tag @e[sort=nearest, limit=1, type=villager, tag=vtc_selected, predicate=theblackswitch:v2.0/patch-1/player_id/match_search] add vtc_scan
+    unless entity @e[sort=nearest, limit=1,type=villager, tag=vtc_selected, predicate=theblackswitch:v2.0/patch-1/player_id/match_search]:
+        tellraw @s "Please select a villager to scan first!"
+        scoreboard players set @s vtc_scan 0
+
+function vtc:disable_scan:
+    scoreboard players set @s vtc_scan 0
+    scoreboard players operation #search tbs.ID = @s tbs.ID
+    tag @e[sort=nearest, limit=1, type=villager, tag=vtc_selected, predicate=theblackswitch:v2.0/patch-1/player_id/match_search] remove vtc_scan
+
+function vtc:got_job:
+    scoreboard players set @s vtc_hasjob 1
+
+    execute if data entity @s Offers.Recipes[0].sell.components."minecraft:stored_enchantments" run tellraw @p [{"nbt":"Offers.Recipes[0].sell.components.\"minecraft:stored_enchantments\"","entity":"@s"},{"text":", prijs: "},{"nbt":"Offers.Recipes[0].buy.count","entity":"@s"}]
+    execute if data entity @s Offers.Recipes[1].sell.components."minecraft:stored_enchantments" run tellraw @p [{"nbt":"Offers.Recipes[1].sell.components.\"minecraft:stored_enchantments\"","entity":"@s"},{"text":", prijs: "},{"nbt":"Offers.Recipes[1].buy.count","entity":"@s"}]
+
+    scoreboard players set @s vtc_scan_flag 0
+
+    for i in range(2):
+        for enchantment in enchantments:
+            if score @s vtc_scan_flag matches 0:
+                scoreboard players set @s vtc_scan_price 999
+                scoreboard players set @s vtc_scan_lvl 0
+                raw f'execute if data entity @s Offers.Recipes[{i}].sell.components.minecraft:stored_enchantments.minecraft:{enchantment[0]} store result score @s vtc_scan_lvl run data get entity @s Offers.Recipes[{i}].sell.components.minecraft:stored_enchantments.minecraft:{enchantment[0]}'
+                if score @s vtc_scan_lvl matches enchantment[1]:
+                    store result score @s vtc_scan_price run data get entity @s f'Offers.Recipes[{i}].buy.count'
+                    raw f'execute if score @s vtc_scan_price <= @p vtc_{enchantment[0]} run tellraw @p [{{"text":"[PING] ","color":"gold"}},{{"text":"{enchantment[0]} {enchantment[1]} < treshold","color":"green"}},{{"text":" — "}},{{"nbt":"Offers.Recipes[{i}].sell.components.minecraft:stored_enchantments","entity":"@s"}},{{"text":", price: "}},{{"nbt":"Offers.Recipes[{i}].buy.count","entity":"@s"}}]'
+                    raw f'execute if score @s vtc_scan_price <= @p vtc_{enchantment[0]} run scoreboard players set @s vtc_scan_flag 1'
+    execute unless data entity @s Offers.Recipes[0].sell.components.minecraft:stored_enchantments unless data entity @s Offers.Recipes[1].sell.components.minecraft:stored_enchantments run tellraw @p "niks"
+
+function vtc:data_reset:
+    data merge entity @s {VillagerData:{profession:"minecraft:none"}}
+    data remove entity @s Offers.Recipes
+    data remove entity @s Brain.memories
+    data remove entity @s Xp
+    function vtc:remove_selected
+    team leave @s
+
+function vtc:remove_selected:
+    tag @s remove vtc_selected
+    tag @s remove vtc_scan
+    scoreboard players reset @s tbs.ID
+    effect clear @s glowing
+
+function vtc:reset:
+    scoreboard players operation #search tbs.ID = @s tbs.ID
+    execute as @e[sort=nearest, limit=1, type=villager, tag=vtc_selected, predicate=theblackswitch:v2.0/patch-1/player_id/match_search] run function vtc:data_reset
+    tellraw @s [{"text":"Villager has been reset","color":"green","bold":true}]
+    scoreboard players set @s vtc_reset 0
+
+function vtc:stop_reset:
+    scoreboard players operation #search tbs.ID = @s tbs.ID
+    effect clear @e[sort=nearest, limit=1, type=villager, tag=vtc_selected, predicate=theblackswitch:v2.0/patch-1/player_id/match_search] glowing
+    scoreboard players set @s vtc_is_resetting 0
+    scoreboard players set @s vtc_reset 0
+    tellraw @p [{"text":"No villager found in radius 10 blocks, or action was canceled.","color":"red"}]
+    team leave @e[sort=nearest, type=villager, tag=vtc_selected, predicate=theblackswitch:v2.0/patch-1/player_id/match_search, limit=1]
+
+function vtc:prompt_reset:
+    scoreboard players operation #search tbs.ID = @s tbs.ID
+    team join vtc_remove @e[sort=nearest, type=villager, tag=vtc_selected, predicate=theblackswitch:v2.0/patch-1/player_id/match_search, limit=1]
+    tellraw @p [{"text":"⚠","color":"yellow","bold":true},{"text":"Are you sure you want to reset this ","color":"red","bold":true},{"text":"red glowing villager?","color":"aqua","bold":true},{"text":"Trigger again for confirmation. ","color":"gold","italic":true},{"text":"Set the trigger to 0 for cancellation","color":"gray","italic":true}]
+    scoreboard players set @s vtc_reset 2
+
+
+#------------------
+## TICK FUNCTIONS
+#------------------
+
+function vtc:tick:
+    execute as @a at @s run function vtc:player
+
+
+#------------------
+## LOAD FUNCTIONS
+#------------------
+
+function vtc:load:
+    function vtc:init_scoreboards
+    say Reload Complete!
+    team add vtc_remove
+    team modify vtc_remove color dark_red
+
+
+function vtc:init_scoreboards:
+    for enchantment in enchantments:
+        raw f'scoreboard objectives add vtc_{enchantment[0]} trigger'
+    scoreboard objectives add vtc_enable trigger
+    scoreboard objectives add vtc_disable trigger
+    scoreboard objectives add vtc_hasjob dummy
+    scoreboard objectives add vtc_scan trigger
+    scoreboard objectives add vtc_reset trigger
+    scoreboard objectives add vtc_is_resetting dummy
+    scoreboard objectives add vtc_menu trigger
+
+    scoreboard objectives add vtc_scan_price dummy
+    scoreboard objectives add vtc_scan_lvl dummy
+    scoreboard objectives add vtc_scan_flag dummy
