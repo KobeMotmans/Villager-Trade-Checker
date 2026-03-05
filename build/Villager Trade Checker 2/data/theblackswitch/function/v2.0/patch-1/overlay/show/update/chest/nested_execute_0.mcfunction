@@ -1,2 +1,0 @@
-execute unless data entity @s Items[{Slot: 1b}].components."minecraft:equippable" run data modify entity @s Items[{Slot: 1b}].components."minecraft:custom_data"."tbs.overlay".equippable set value "none"
-execute if data entity @s Items[{Slot: 1b}].components."minecraft:equippable" run data modify entity @s Items[{Slot: 1b}].components."minecraft:custom_data"."tbs.overlay".equippable set from entity @s Items[{Slot: 1b}].components."minecraft:equippable"
